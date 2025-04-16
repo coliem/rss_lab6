@@ -208,7 +208,7 @@ class PathPlan(Node):
     def reconstruct_path(self, came_from, end):
         current = end
         path = [self.convert_pixel_to_world(current)]
-        # self.get_logger().info(f"{came_from}")
+        self.get_logger().info(f"{came_from}")
 
         while current in came_from:
             current = came_from[current]
