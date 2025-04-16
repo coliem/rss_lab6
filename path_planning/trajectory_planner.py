@@ -12,6 +12,8 @@ from skimage.morphology import disk, dilation
 
 from tf_transformations import euler_from_quaternion
 
+from geometry_msgs.msg import Pose
+
 from heapq import heappop, heappush
 
 
@@ -53,6 +55,12 @@ class PathPlan(Node):
             PoseWithCovarianceStamped,
             self.initial_pose_topic,
             self.pose_cb,
+            10
+        )
+
+        self.visited_points_pub = self.create_publisher(
+            PoseArray,
+            "/trajectory/visited_points",
             10
         )
 
@@ -140,6 +148,9 @@ class PathPlan(Node):
         goal_px = self.convert_world_to_pixel(end_point)
         self.get_logger().info(f"Start pixel: {start_px}, Goal pixel: {goal_px}")
 
+        visited_points = PoseArray()
+        visited_points.header.frame_id = "map"
+
         # Remember start_px and goal_px are (u,v) format but we index map_data as (v,u)
         def get_neighbors(node):
             neighbors = [
@@ -175,6 +186,17 @@ class PathPlan(Node):
         while open_set:
             _, current_g, current = heappop(open_set)
             self.get_logger().info(f"On node {current}")
+
+            # Add the current node to visited points
+            world_coords = self.convert_pixel_to_world(current)
+            pose = Pose()
+            pose.position.x = world_coords[0]
+            pose.position.y = world_coords[1]
+            pose.position.z = 0.0
+            visited_points.poses.append(pose)
+
+            # Publish visited points
+            self.visited_points_pub.publish(visited_points)
             if current == goal_px:
                 self.get_logger().info("Goal reached")
                 path = self.reconstruct_path(came_from, goal_px)
@@ -184,7 +206,7 @@ class PathPlan(Node):
             # self.get_logger().info(f"{get_neighbors(current)}")
             for neighbor in get_neighbors(current):
                 u, v = neighbor
-                if neighbor in completed or self.map_data[v,u] == 100:
+                if neighbor in completed or self.map_data[v,u] != 0:
                     # self.get_logger().info(f"{self.map_data[v,u]}")
                     continue
 
@@ -192,7 +214,7 @@ class PathPlan(Node):
 
                 if neighbor not in g_score or tentative_g_score < g_score[neighbor]:
                     g_score[neighbor] = tentative_g_score
-                    f_score = tentative_g_score + heuristic(neighbor, goal_px)
+                    f_score = tentative_g_score + euclidean_distance(neighbor, goal_px)
                     heapq.heappush(open_set, (f_score, tentative_g_score, neighbor))
                     came_from[neighbor] = current
 
@@ -208,7 +230,7 @@ class PathPlan(Node):
     def reconstruct_path(self, came_from, end):
         current = end
         path = [self.convert_pixel_to_world(current)]
-        # self.get_logger().info(f"{came_from}")
+        self.get_logger().info(f"{came_from}")
 
         while current in came_from:
             current = came_from[current]
