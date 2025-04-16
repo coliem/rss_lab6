@@ -157,10 +157,11 @@ class PathPlan(Node):
                 if 0 <= u < self.map_width and 0 <= v < self.map_height
             ]
         def heuristic(a, b):
-            # Euclidean distance for heuristic
+            # manhattan distance for heuristic
             return np.abs(a[0] - b[0]) + np.abs(a[1] - b[1])
 
         def euclidean_distance(a, b):
+            # euclidean distance for cost
             return np.sqrt((a[0] - b[0])**2 + (a[1] - b[1])**2)
 
         open_set = []
@@ -213,83 +214,6 @@ class PathPlan(Node):
             current = came_from[current]
             path.insert(0, self.convert_pixel_to_world(current))
         return path
-
-
-
-    # def plan_path(self, start_point, end_point, map):
-    #     """
-    #     start_point: pixel coordinates of start point
-    #     end_point: pixel coordinates of end point
-    #     map: 2D array of height x width of map
-    #     """
-    #     self.get_logger().info("Entered path planner")
-    #     def heuristic(a, b):
-    #         # Euclidean distance for heuristic
-    #         return np.sqrt((a[0] - b[0])**2 + (a[1] - b[1])**2)
-
-    #     def get_neighbors(node):
-    #         neighbors = [
-    #             (node[0] + 1, node[1]),  # down
-    #             (node[0] - 1, node[1]),  # up
-    #             (node[0], node[1] + 1),  # right
-    #             (node[0], node[1] - 1)   # left
-    #         ]
-    #         # Filter neighbors within map bounds and not in obstacles
-    #         return [
-    #             (v, u) for v, u in neighbors
-    #             if 0 <= v < map.shape[0] and 0 <= u < map.shape[1]
-    #         ]
-
-    #     # Start and goal points in (v, u) format
-    #     start = (start_point[1], start_point[0])
-    #     goal = (end_point[1], end_point[0])
-
-    #     # Priority queue for open set
-    #     open_set = []
-    #     completed = set()
-    #     self.get_logger().info("Initialized open set")
-    #     heappush(open_set, (0 + heuristic(start, goal), 0, start))  # (f_score, g_score, node)
-    #     came_from = {}
-    #     g_score = {start: 0}
-
-    #     while open_set:
-    #         self.get_logger().info("Planning path...")
-    #         _, current_g, current = heappop(open_set)
-
-    #         if current == goal:
-    #             # Reconstruct path
-    #             path = []
-    #             while current in came_from:
-    #                 path.append(current)
-    #                 current = came_from[current]
-    #             path.reverse()
-    #             self.get_logger().info("Path {path}")
-    #             # Convert path to map coordinates and store in trajectory
-    #             self.trajectory.clear()
-    #             for pixel in path:
-    #                 map_point = self.convert_pixel_to_map((pixel[1], pixel[0]))  # Convert back to (u, v)
-    #                 self.trajectory.addPoint(map_point)
-    #                 self.get_logger().info("Addng pixel")
-    #             break
-    #         self.get_logger().info(f"{current}")
-    #         self.get_logger().info(f"{get_neighbors(current)}")
-    #         for neighbor in get_neighbors(current):
-    #             if neighbor in completed:
-    #                 continue
-    #             self.get_logger().info("getting neighbors")
-    #             if (self.map[neighbor[0], neighbor[1]] == 100):
-    #                 continue
-    #             tentative_g_score = current_g + 1  # Assume uniform cost for each step
-    #             if neighbor not in g_score or tentative_g_score < g_score[neighbor]:
-    #                 g_score[neighbor] = tentative_g_score
-    #                 f_score = tentative_g_score + heuristic(neighbor, goal)
-    #                 heappush(open_set, (f_score, tentative_g_score, neighbor))
-    #                 came_from[neighbor] = current
-    #         completed.add(current)
-
-    #     self.traj_pub.publish(self.trajectory.toPoseArray())
-    #     self.trajectory.publish_viz()
-    #     self.get_logger().info("Path planned successfully.")
 
     def dilate_map(self, r):
         r_px = int(r/self.map_resolution)
